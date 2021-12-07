@@ -8,65 +8,92 @@ terraform {
 }
 
 provider "marketo" {
-	# address = "http://192.168.86.169:8080"
+	endpoint = ""
+	id = ""
+	secret = ""
 }
 
-# resource "marketo_folder" "hashitalks_2021" {
-# 	name = "HashiTalks - 2021"
-# }
+resource "marketo_folder" "folder" {
+	name = "HashiTalks"
+	description = ""
 
-# data "marketo_smartlist" "india" {
-# 	name = "india"
-# }
-
-# Steps:
-# 1. create email template
-# 2. create email
-# 3. create smart campaign
-# 4. create program
-# 5. MANUALLY tie them together
-#
-# For each event:
-# 6. clone a program
-#
-
-resource "marketo_program" "base_program" {
-	name = "HashiTalks: India"
-	# description = "HashiTalks: India"
+	# mutually exclusive
+	program = marketo_program.program.id
+	folder = marketo_folder.folder.id 
 }
 
-# resource email template {}
-# data email template{}
+resource "marketo_program" "program" {
+	name = "HashiTalks: Region"
+	description = "HashiTalks: Region"
 
-# takes template and fills it with data
-# resource email {
-# 	template = ""
-# }
+	type = ""
 
+	cost {
+		amount = 1
+		note = ""
+		start_date = ""
+	}
 
+	# mutually exclusive
+	program = marketo_program.program.id
+	folder = marketo_folder.folder.id 
 
-# resource "marketo_program" "india_program" {
-# 	clone = data.marketo_program.base
+	channel = data.marketo_channel.channel.id
 
-# 	smartlists = [data.marketo_smartlist.india]
-# 	folder = marketo_folder.hashitalks_2021.name
-# }
+	tag {
+		type = ""
+		value = ""
+	}
+}
 
-# schedule the email
-# resource smart campaign {
-# 	program = ""
-# 	schedule = ""
-# 	tokens = []
-# } 
+resource "marketo_email_template" "template" {
+	name = ""
+	description = ""
 
-# Add smart lists to program
-# Add email templates to program
+	# mutually exclusive
+	program = marketo_program.program.id
+	folder = marketo_folder.folder.id
 
+	content = templatefile("${path.module}/files/template.html.tpl", {
+		region = "region"
+	})
+}
 
-# data "marketo_program" "hashitalks_email" {
-# 	name = "HashiTalks: India"
-# }
+resource "marketo_email" "email" {
+	name = ""
+	description = ""
 
+	# mutually exclusive
+	program = marketo_program.program.id
+	folder = marketo_folder.folder.id
 
+	from_email = ""
+	from_name = ""
+	reply_to = ""
 
+	operational = true
+	text_only = false
 
+	subject = ""
+	template = marketo_email_template.template.id
+}
+
+resource "marketo_smart_campaign" "campaign" {
+	name = ""
+	description = ""
+
+	# mutually exclusive
+	program = marketo_program.program.id
+	folder = marketo_folder.folder.id
+}
+
+resource "marketo_smart_list" "list" {
+	source = data.marketo_smart_list.source.id
+
+	name = ""
+	description = ""
+
+	# mutually exclusive
+	program = marketo_program.program.id
+	folder = marketo_folder.folder.id
+}
