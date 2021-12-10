@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-type resourceProgramType struct{}
+type resourceSmartCampaignType struct{}
 
-func (r resourceProgramType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func (r resourceSmartCampaignType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
@@ -32,14 +32,6 @@ func (r resourceProgramType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.StringType,
 				Optional: true,
 			},
-			"type": {
-				Type:     types.StringType,
-				Required: true,
-			},
-			"channel": {
-				Type:     types.StringType,
-				Required: true,
-			},
 			"folder": {
 				Type:     types.StringType,
 				Optional: true,
@@ -48,21 +40,36 @@ func (r resourceProgramType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.StringType,
 				Optional: true,
 			},
+			"schedule": {
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"run_at": {
+						Type:     types.StringType,
+						Required: true,
+					},
+					"tokens": {
+						Type: types.MapType{
+							ElemType: types.StringType,
+						},
+						Optional: true,
+					},
+				}),
+				Optional: true,
+			},
 		},
 	}, nil
 }
 
-func (r resourceProgramType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return resourceProgram{
+func (r resourceSmartCampaignType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	return resourceSmartCampaign{
 		p: *(p.(*provider)),
 	}, nil
 }
 
-type resourceProgram struct {
+type resourceSmartCampaign struct {
 	p provider
 }
 
-func (r resourceProgram) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (r resourceSmartCampaign) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	if !r.p.configured {
 		resp.Diagnostics.AddError(
 			"Provider not configured",
@@ -71,22 +78,22 @@ func (r resourceProgram) Create(ctx context.Context, req tfsdk.CreateResourceReq
 		return
 	}
 
-	var plan Program
+	var plan SmartCampaign
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	program := marketo.Program{
+	smartCampaign := marketo.SmartCampaign{
 		Name: plan.Name.Value,
 	}
 
-	result, err := r.p.client.CreateProgram(program)
+	result, err := r.p.client.CreateSmartCampaign(smartCampaign)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating program",
-			"Could not create program, unexpected error: "+err.Error(),
+			"Error creating smartCampaign",
+			"Could not create smartCampaign, unexpected error: "+err.Error(),
 		)
 		return
 	}
@@ -103,26 +110,26 @@ func (r resourceProgram) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 }
 
-func (r resourceProgram) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
-	var state Program
+func (r resourceSmartCampaign) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	var state SmartCampaign
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	programID := state.ID.Value
-	program, err := r.p.client.GetProgram(programID)
+	smartCampaignID := state.ID.Value
+	smartCampaign, err := r.p.client.GetSmartCampaign(smartCampaignID)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading program",
-			"Could not read program with ID "+programID+": "+err.Error(),
+			"Error reading smartCampaign",
+			"Could not read smartCampaign with ID "+smartCampaignID+": "+err.Error(),
 		)
 		return
 	}
 
-	state.ID = types.String{Value: program.ID}
-	state.Name = types.String{Value: program.Name}
+	state.ID = types.String{Value: smartCampaign.ID}
+	state.Name = types.String{Value: smartCampaign.Name}
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -131,31 +138,31 @@ func (r resourceProgram) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	}
 }
 
-func (r resourceProgram) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
-	var plan Program
+func (r resourceSmartCampaign) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	var plan SmartCampaign
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var state Program
+	var state SmartCampaign
 	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	program := marketo.Program{
+	smartCampaign := marketo.SmartCampaign{
 		Name: plan.Name.Value,
 	}
 
-	programID := state.ID.Value
-	result, err := r.p.client.UpdateProgram(programID, program)
+	smartCampaignID := state.ID.Value
+	result, err := r.p.client.UpdateSmartCampaign(smartCampaignID, smartCampaign)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error update order",
-			"Could not update orderID "+programID+": "+err.Error(),
+			"Could not update orderID "+smartCampaignID+": "+err.Error(),
 		)
 		return
 	}
@@ -172,20 +179,20 @@ func (r resourceProgram) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 }
 
-func (r resourceProgram) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
-	var state Program
+func (r resourceSmartCampaign) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state SmartCampaign
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	programID := state.ID.Value
-	err := r.p.client.DeleteProgram(programID)
+	smartCampaignID := state.ID.Value
+	err := r.p.client.DeleteSmartCampaign(smartCampaignID)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error deleting program",
-			"Could not delete program with ID "+programID+": "+err.Error(),
+			"Error deleting smartCampaign",
+			"Could not delete smartCampaign with ID "+smartCampaignID+": "+err.Error(),
 		)
 		return
 	}
@@ -193,6 +200,6 @@ func (r resourceProgram) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 	resp.State.RemoveResource(ctx)
 }
 
-func (r resourceProgram) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+func (r resourceSmartCampaign) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }

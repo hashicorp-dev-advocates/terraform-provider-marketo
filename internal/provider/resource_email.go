@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-type resourceProgramType struct{}
+type resourceEmailType struct{}
 
-func (r resourceProgramType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func (r resourceEmailType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
@@ -32,14 +32,6 @@ func (r resourceProgramType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.StringType,
 				Optional: true,
 			},
-			"type": {
-				Type:     types.StringType,
-				Required: true,
-			},
-			"channel": {
-				Type:     types.StringType,
-				Required: true,
-			},
 			"folder": {
 				Type:     types.StringType,
 				Optional: true,
@@ -48,21 +40,70 @@ func (r resourceProgramType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.StringType,
 				Optional: true,
 			},
+			"from_email": {
+				Type:     types.StringType,
+				Required: true,
+			},
+			"from_name": {
+				Type:     types.StringType,
+				Required: true,
+			},
+			"reply_to": {
+				Type:     types.StringType,
+				Required: true,
+			},
+			"operational": {
+				Type:     types.BoolType,
+				Optional: true,
+			},
+			"text_only": {
+				Type:     types.BoolType,
+				Optional: true,
+			},
+			"subject": {
+				Type:     types.StringType,
+				Required: true,
+			},
+			"template": {
+				Type:     types.StringType,
+				Required: true,
+			},
+			"content": {
+				Optional: true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"section": {
+						Type:     types.StringType,
+						Required: true,
+					},
+					"text": {
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"dynamic_content": {
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"snippet": {
+						Type:     types.StringType,
+						Optional: true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+			},
 		},
 	}, nil
 }
 
-func (r resourceProgramType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return resourceProgram{
+func (r resourceEmailType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	return resourceEmail{
 		p: *(p.(*provider)),
 	}, nil
 }
 
-type resourceProgram struct {
+type resourceEmail struct {
 	p provider
 }
 
-func (r resourceProgram) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (r resourceEmail) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	if !r.p.configured {
 		resp.Diagnostics.AddError(
 			"Provider not configured",
@@ -71,22 +112,22 @@ func (r resourceProgram) Create(ctx context.Context, req tfsdk.CreateResourceReq
 		return
 	}
 
-	var plan Program
+	var plan Email
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	program := marketo.Program{
+	email := marketo.Email{
 		Name: plan.Name.Value,
 	}
 
-	result, err := r.p.client.CreateProgram(program)
+	result, err := r.p.client.CreateEmail(email)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating program",
-			"Could not create program, unexpected error: "+err.Error(),
+			"Error creating email",
+			"Could not create email, unexpected error: "+err.Error(),
 		)
 		return
 	}
@@ -103,26 +144,26 @@ func (r resourceProgram) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 }
 
-func (r resourceProgram) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
-	var state Program
+func (r resourceEmail) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	var state Email
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	programID := state.ID.Value
-	program, err := r.p.client.GetProgram(programID)
+	emailID := state.ID.Value
+	email, err := r.p.client.GetEmail(emailID)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading program",
-			"Could not read program with ID "+programID+": "+err.Error(),
+			"Error reading email",
+			"Could not read email with ID "+emailID+": "+err.Error(),
 		)
 		return
 	}
 
-	state.ID = types.String{Value: program.ID}
-	state.Name = types.String{Value: program.Name}
+	state.ID = types.String{Value: email.ID}
+	state.Name = types.String{Value: email.Name}
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -131,31 +172,31 @@ func (r resourceProgram) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	}
 }
 
-func (r resourceProgram) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
-	var plan Program
+func (r resourceEmail) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	var plan Email
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var state Program
+	var state Email
 	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	program := marketo.Program{
+	email := marketo.Email{
 		Name: plan.Name.Value,
 	}
 
-	programID := state.ID.Value
-	result, err := r.p.client.UpdateProgram(programID, program)
+	emailID := state.ID.Value
+	result, err := r.p.client.UpdateEmail(emailID, email)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error update order",
-			"Could not update orderID "+programID+": "+err.Error(),
+			"Could not update orderID "+emailID+": "+err.Error(),
 		)
 		return
 	}
@@ -172,20 +213,20 @@ func (r resourceProgram) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 }
 
-func (r resourceProgram) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
-	var state Program
+func (r resourceEmail) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state Email
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	programID := state.ID.Value
-	err := r.p.client.DeleteProgram(programID)
+	emailID := state.ID.Value
+	err := r.p.client.DeleteEmail(emailID)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error deleting program",
-			"Could not delete program with ID "+programID+": "+err.Error(),
+			"Error deleting email",
+			"Could not delete email with ID "+emailID+": "+err.Error(),
 		)
 		return
 	}
@@ -193,6 +234,6 @@ func (r resourceProgram) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 	resp.State.RemoveResource(ctx)
 }
 
-func (r resourceProgram) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+func (r resourceEmail) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }

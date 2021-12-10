@@ -137,10 +137,18 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 
 func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
 	return map[string]tfsdk.ResourceType{
-		"marketo_program": resourceProgramType{},
+		"marketo_program":        resourceProgramType{},
+		"marketo_folder":         resourceFolderType{},
+		"marketo_email":          resourceEmailType{},
+		"marketo_email_template": resourceEmailTemplateType{},
+		"marketo_smart_campaign": resourceSmartCampaignType{},
+		"marketo_smart_list":     resourceSmartListType{},
 	}, nil
 }
 
 func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
-	return map[string]tfsdk.DataSourceType{}, nil
+	return map[string]tfsdk.DataSourceType{
+		"marketo_channel":    dataSourceChannelType{},
+		"marketo_smart_list": dataSourceSmartListType{},
+	}, nil
 }
