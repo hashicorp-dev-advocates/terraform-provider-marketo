@@ -1,3 +1,4 @@
 .envrc
 example/.terraform.lock.hcl
+example/.terraform
 bin

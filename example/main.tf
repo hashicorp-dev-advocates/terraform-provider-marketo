@@ -34,7 +34,7 @@ resource "marketo_program" "program" {
 	name = "HashiTalks: Region"
 	description = "HashiTalks: Region"
 
-	type = ""
+	type = "default"
 
 	# cost {
 	# 	amount = 1
